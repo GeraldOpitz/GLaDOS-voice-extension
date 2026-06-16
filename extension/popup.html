@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 280px;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 12px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+      background: #222;
+      color: #eee;
+      border: 1px solid #555;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    select {
+      width: 100%;
+      margin-top: 8px;
+      padding: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h3>GLAdOS Reader</h3>
+
+  <textarea id="text" placeholder="Escribe texto aquí..."></textarea>
+
+  <select id="personality">
+    <option value="literal">Literal</option>
+    <option value="light" selected>GLaDOS light</option>
+    <option value="full">GLaDOS personality</option>
+  </select>
+
+  <button id="read">Leer</button>
+  <button id="stop">Detener</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

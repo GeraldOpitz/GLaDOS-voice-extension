@@ -1,0 +1,26 @@
+{
+  "manifest_version": 2,
+  "name": "GLAdOS Reader",
+  "version": "0.1",
+  "description": "Lee texto seleccionado usando un backend local con voz robótica.",
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "storage",
+    "http://localhost:5050/*",
+    "http://127.0.0.1:5050/*"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "browser_action": {
+    "default_title": "GLAdOS Reader",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
