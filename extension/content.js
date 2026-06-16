@@ -1,10 +1,13 @@
 let pageSections = [];
 let currentSectionIndex = 0;
 
+const MAX_SECTION_CHARS = 3500;
+const MIN_BLOCK_CHARS = 30;
+
 function cleanText(text) {
-  return text
+  return (text || "")
     .replace(/\s+/g, " ")
-    .replace(/Previous|Next|Feedback|Table of contents/gi, "")
+    .replace(/\b(Previous|Next|Feedback|Table of contents|Submit and view feedback for)\b/gi, "")
     .trim();
 }
 
@@ -20,7 +23,8 @@ function removeUnwanted(root) {
     ".navbar", ".nav", ".sidebar", ".breadcrumb",
     ".footer", ".header", ".menu",
     ".toc", ".table-of-contents",
-    ".feedback", ".pagination"
+    ".feedback", ".pagination",
+    ".learn-toc", ".metadata", ".contributors"
   ];
 
   unwantedSelectors.forEach(selector => {
@@ -36,16 +40,23 @@ function getMainContentRoot() {
     clonedDocument.querySelector("main"),
     clonedDocument.querySelector("article"),
     clonedDocument.querySelector("[role='main']"),
+    clonedDocument.querySelector("#main"),
+    clonedDocument.querySelector("#content"),
     clonedDocument.querySelector(".content"),
     clonedDocument.querySelector(".main-content"),
     clonedDocument.querySelector(".markdown-body"),
+    clonedDocument.querySelector(".docon"),
     clonedDocument.body
   ].filter(Boolean);
 
   let bestCandidate = candidates[0];
 
   for (const candidate of candidates) {
-    if (candidate.innerText && candidate.innerText.length > bestCandidate.innerText.length) {
+    if (
+      candidate.innerText &&
+      bestCandidate.innerText &&
+      candidate.innerText.length > bestCandidate.innerText.length
+    ) {
       bestCandidate = candidate;
     }
   }
@@ -53,46 +64,117 @@ function getMainContentRoot() {
   return bestCandidate;
 }
 
-function buildSections() {
-  const root = getMainContentRoot();
+function getReadableBlocks(root) {
+  const selectors = [
+    "h1", "h2", "h3",
+    "p",
+    "li",
+    "blockquote",
+    "pre",
+    "table"
+  ];
 
-  const headings = Array.from(root.querySelectorAll("h1, h2, h3"))
-    .filter(h => cleanText(h.innerText).length > 0);
+  const elements = Array.from(root.querySelectorAll(selectors.join(",")));
+  const blocks = [];
+  const seenTexts = new Set();
 
-  const sections = [];
-
-  if (headings.length === 0) {
-    const text = cleanText(root.innerText);
-    return text ? [{ title: document.title || "Page", text }] : [];
-  }
-
-  headings.forEach((heading, index) => {
-    const title = cleanText(heading.innerText);
-    let textParts = [title];
-
-    let node = heading.nextElementSibling;
-
-    while (node && !["H1", "H2", "H3"].includes(node.tagName)) {
-      const part = cleanText(node.innerText || "");
-
-      if (part.length > 40) {
-        textParts.push(part);
-      }
-
-      node = node.nextElementSibling;
+  for (const el of elements) {
+    // Evita duplicar texto si el elemento está dentro de otro bloque ya capturado
+    const parentReadable = el.parentElement?.closest("p, li, blockquote, pre, table");
+    if (parentReadable && parentReadable !== el) {
+      continue;
     }
 
-    const text = cleanText(textParts.join(". "));
+    let text = cleanText(el.innerText);
 
-    if (text.length > 80) {
-      sections.push({
-        title,
+    if (!text || text.length < MIN_BLOCK_CHARS) {
+      continue;
+    }
+
+    // Evita duplicados exactos
+    const normalized = text.toLowerCase();
+    if (seenTexts.has(normalized)) {
+      continue;
+    }
+
+    seenTexts.add(normalized);
+
+    const tag = el.tagName.toLowerCase();
+
+    if (tag === "h1" || tag === "h2" || tag === "h3") {
+      blocks.push({
+        type: "heading",
         text
       });
+      continue;
     }
-  });
 
-  return sections;
+    if (tag === "pre") {
+      text = "Code block. " + text.slice(0, 1200);
+    }
+
+    if (tag === "table") {
+      text = "Table. " + text.slice(0, 1500);
+    }
+
+    blocks.push({
+      type: "body",
+      text
+    });
+  }
+
+  return blocks;
+}
+
+function buildSections() {
+  const root = getMainContentRoot();
+  const blocks = getReadableBlocks(root);
+
+  if (!blocks.length) {
+    const fallback = cleanText(root.innerText);
+    return fallback ? [{ title: "Page", text: fallback.slice(0, MAX_SECTION_CHARS) }] : [];
+  }
+
+  const sections = [];
+  let currentTitle = document.title || "Page";
+  let currentText = "";
+
+  for (const block of blocks) {
+    if (block.type === "heading") {
+      if (currentText.length > 0) {
+        sections.push({
+          title: currentTitle,
+          text: currentText.trim()
+        });
+      }
+
+      currentTitle = block.text;
+      currentText = block.text + ". ";
+      continue;
+    }
+
+    const nextText = currentText + block.text + ". ";
+
+    if (nextText.length > MAX_SECTION_CHARS && currentText.length > 0) {
+      sections.push({
+        title: currentTitle,
+        text: currentText.trim()
+      });
+
+      currentText = block.text + ". ";
+    } else {
+      currentText = nextText;
+    }
+  }
+
+  if (currentText.length > 0) {
+    sections.push({
+      title: currentTitle,
+      text: currentText.trim()
+    });
+  }
+
+  return sections.filter(section => section.text.length > 80);
 }
 
 function getSectionText(index) {
@@ -128,7 +210,6 @@ browser.runtime.onMessage.addListener((message) => {
   if (message.action === "READ_PAGE") {
     pageSections = buildSections();
     currentSectionIndex = 0;
-
     speakText(getSectionText(currentSectionIndex), message.personality);
   }
 

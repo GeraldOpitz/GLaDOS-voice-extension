@@ -24,6 +24,18 @@ document.getElementById("read").addEventListener("click", async () => {
   });
 });
 
+document.getElementById("pause").addEventListener("click", () => {
+  browser.runtime.sendMessage({
+    action: "PAUSE_AUDIO"
+  });
+});
+
+document.getElementById("resume").addEventListener("click", () => {
+  browser.runtime.sendMessage({
+    action: "RESUME_AUDIO"
+  });
+});
+
 document.getElementById("stop").addEventListener("click", () => {
   browser.runtime.sendMessage({
     action: "STOP_AUDIO"
