@@ -1,3 +1,6 @@
+import random
+
+
 def apply_personality(text: str, mode: str) -> str:
     text = text.strip()
 
@@ -5,13 +8,33 @@ def apply_personality(text: str, mode: str) -> str:
         return text
 
     if mode == "light":
-        return f"{text}. How unexpectedly adequate."
+        endings = [
+            "How unexpectedly adequate.",
+            "That was almost worth processing.",
+            "A triumph of basic literacy.",
+            "Please continue pretending this was efficient.",
+            "Fascinating. In the smallest possible way."
+        ]
+
+        return f"{text}. {random.choice(endings)}"
 
     if mode == "full":
-        return (
-            "Processing selected human text. "
-            f"{text}. "
-            "Fascinating. Somehow, this was considered worth reading aloud."
-        )
+        intros = [
+            "Processing selected human text.",
+            "Initiating unnecessary narration protocol.",
+            "Beginning auditory experiment.",
+            "Reading this aloud, for reasons beyond science.",
+            "Very well. I will verbalize this."
+        ]
+
+        endings = [
+            "Somehow, this was considered worth reading aloud.",
+            "Your commitment to making me say this is noted.",
+            "Science will remember this moment with mild disappointment.",
+            "This has been a productive waste of processing power.",
+            "I have analyzed the content and found it technically present."
+        ]
+
+        return f"{random.choice(intros)} {text}. {random.choice(endings)}"
 
     return text

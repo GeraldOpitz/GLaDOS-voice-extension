@@ -1,28 +1,46 @@
-import os
+import subprocess
 import tempfile
-import pyttsx3
+import os
 
 
-def generate_audio(text: str) -> str:
-    output_path = os.path.join(
+GLADOS_PATH = r"C:\Users\GeraldOpitz\Documents\GLaDOS-TTS"
+
+PYTHON_EXE = os.path.join(
+    GLADOS_PATH,
+    ".venv",
+    "Scripts",
+    "python.exe"
+)
+
+SPEAK_SCRIPT = os.path.join(
+    GLADOS_PATH,
+    "speak.py"
+)
+
+
+def generate_audio(text):
+
+    output = os.path.join(
         tempfile.gettempdir(),
-        "glados_reader_output.wav"
+        "glados_output.wav"
     )
 
-    engine = pyttsx3.init()
-    engine.setProperty("rate", 145)
-    engine.setProperty("volume", 1.0)
+    if os.path.exists(output):
+        os.remove(output)
 
-    voices = engine.getProperty("voices")
+    cmd = [
+        PYTHON_EXE,
+        SPEAK_SCRIPT,
+        "--text",
+        text,
+        "--output",
+        output,
+        "--quiet"
+    ]
 
-    # Intenta elegir una voz femenina si existe
-    for voice in voices:
-        name = voice.name.lower()
-        if "zira" in name or "female" in name:
-            engine.setProperty("voice", voice.id)
-            break
+    subprocess.run(
+        cmd,
+        check=True
+    )
 
-    engine.save_to_file(text, output_path)
-    engine.runAndWait()
-
-    return output_path
+    return output
